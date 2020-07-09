@@ -27,8 +27,104 @@ class NoteState extends State<Note> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _textController = TextEditingController();
+
+  int Num;
+  int Hours;
+  int Minutes;
+  int Seconds; 
+  //String title;
+  //String text;
+
   
   //List<Map<String, String>> get _notes => NoteInheritedWidget.of(context).notes;
+
+  String _toTwoDigitString(int value) {
+    return value.toString().padLeft(2, '0');
+  }
+
+  //Declarar el plugin
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = new FlutterLocalNotificationsPlugin();
+  var initializationSettingsAndroid;
+  var initializationSettingsIOS;
+  var initializationSettings;
+
+//Ejemplo del profe
+  Future scheuleAtParticularTime(DateTime timee) async {
+    var time = Time(timee.hour, timee.minute, timee.second);
+    print(time.toString());
+   
+    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'channel_id', 'channel_name', 'channel_description',
+    );
+
+    var IOSPlatformChannelSpecifics = IOSNotificationDetails();
+
+    var platformChannelSpecifics = NotificationDetails(
+        androidPlatformChannelSpecifics, IOSPlatformChannelSpecifics);
+    var now = new DateTime.now();
+    //Notificar a los 3 minutos
+   // var reprogram = now.add(Duration(hours: 00, minutes: 00, seconds: 5));
+    //Id aleatorio(tarea)
+    await flutterLocalNotificationsPlugin.showDailyAtTime(
+        0,
+        widget.note['title'],
+        widget.note['text'],
+        time,
+        platformChannelSpecifics, payload: 'Hello from my data');
+    //Ver la hora programada
+    Fluttertoast.showToast(
+        msg: "Scheduled at time ${time.hour} : ${time.minute} : ${time.second} ",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 10,
+        backgroundColor: Colors.grey,
+        textColor: Colors.white,
+    );
+  }
+  @override
+  void initState() {
+    super.initState();
+    initializationSettingsAndroid =
+        new AndroidInitializationSettings('app_icon');
+    initializationSettingsIOS = new IOSInitializationSettings(
+        onDidReceiveLocalNotification: _onDidReceiveLocalNotification);
+    initializationSettings = new InitializationSettings(
+        initializationSettingsAndroid, initializationSettingsIOS);
+    flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onSelectNotification: _onSelectNotification);
+  }
+
+  Future _onSelectNotification(String payload) async {
+    if (payload != null) {
+      debugPrint('Notification payload: $payload');
+    }
+    await Navigator.push(
+        context, new MaterialPageRoute(builder: (context) => new SecondPage(payload: payload,)));
+    print('Called On Select local Notification');
+  }
+
+  Future _onDidReceiveLocalNotification(
+      int id, String title, String body, String payload) async {
+    await showDialog(
+        context: context,
+        builder: (BuildContext context) => CupertinoAlertDialog(
+              title: Text(title),
+              content: Text(body),
+              actions: <Widget>[
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  child: Text('Ok'),
+                  onPressed: () async {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    await Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => SecondPage(payload: payload,)));
+                  },
+                ),
+              ],
+            ));
+    print('Called On did Receive local Notification');
+  }
+
 
   @override
   void didChangeDependencies() {
@@ -70,9 +166,9 @@ class NoteState extends State<Note> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 _NoteButton('Save', Colors.blue, () {
-                  final title = _titleController.text;
-                  final text = _textController.text;
-
+                  var title = _titleController.text;
+                  var text = _textController.text;
+                  
                   if (widget?.noteMode == NoteMode.Adding) {
                     NoteProvider.insertNote({
                       'title': title,
@@ -86,6 +182,11 @@ class NoteState extends State<Note> {
                     });
                   }
                   Navigator.pop(context);
+                  print(title);
+                  print(text);
+                  print(Hours);
+                  print(Minutes);
+                  print(Seconds);
                 }),
                 Container(height: 16.0,),
                 _NoteButton('Discard', Colors.grey, () {
@@ -110,7 +211,6 @@ class NoteState extends State<Note> {
                   Icons.notifications_active,
                   color: Colors.grey,
                   size: 24.0,
-                
                 ),
                 Text('Schedule notification', style: TextStyle(color: Colors.grey),)
                 //ONPREES A LA OTRA PAGINA
@@ -122,23 +222,34 @@ class NoteState extends State<Note> {
               endIndent: 90,
               thickness: 1.0),
             Container(height: 15.0),
-            
+                MaterialButton(
+                  onPressed: () {
+                    DatePicker.showDateTimePicker(context, showTitleActions: true, onChanged: (date) {
+                    print('change $date in time zone ' + date.timeZoneOffset.inHours.toString());
+                  }, onConfirm: (date) {
+                    setState(() {
+                      Hours = date.hour;
+                      Minutes = date.minute;
+                      Seconds = date.second;
+                    });
+                  print('confirm $date');
+                  scheuleAtParticularTime(
+                      DateTime.fromMillisecondsSinceEpoch(
+                      date.millisecondsSinceEpoch)
+                  );
+                    }, currentTime: DateTime.now(), locale: LocaleType.es);}, 
+                  child: Text('Click here!',
+                  style: TextStyle(color: Colors.white),
+                  ),
+                  height: 40,
+                  minWidth: 80,
+                  color: Colors.purple,
+                ),
           ],
         ),
       ),
-       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => MyHomePage()));
-        },
-        child: Icon(Icons.add),
-      ),
     );
   }
-
-  
 }
 
 class _NoteButton extends StatelessWidget {
@@ -164,8 +275,7 @@ class _NoteButton extends StatelessWidget {
   }
 }
 
-//DATATIME PICKER
-
+//DATETIME PICKER
 class CustomPicker extends CommonPickerModel {
   String digits(int value, int length) {
     return '$value'.padLeft(length, "0");
@@ -173,6 +283,7 @@ class CustomPicker extends CommonPickerModel {
 
   CustomPicker({DateTime currentTime, LocaleType locale}) : super(locale: locale) {
     this.currentTime = currentTime ?? DateTime.now();
+    this.setLeftIndex(this.currentTime.day);
     this.setLeftIndex(this.currentTime.hour);
     this.setMiddleIndex(this.currentTime.minute);
     this.setRightIndex(this.currentTime.second);
@@ -228,252 +339,6 @@ class CustomPicker extends CommonPickerModel {
         : DateTime(currentTime.year, currentTime.month, currentTime.day, this.currentLeftIndex(),
             this.currentMiddleIndex(), this.currentRightIndex());
   }
-}
-
-
-
-//NOTIFICACION
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-String _toTwoDigitString(int value) {
-    return value.toString().padLeft(2, '0');
-  }
-
-
-class _MyHomePageState extends State<MyHomePage> {
-  //Declarar el plugin
-
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      new FlutterLocalNotificationsPlugin();
-  var initializationSettingsAndroid;
-  var initializationSettingsIOS;
-  var initializationSettings;
-
- /* void _showNotification() async {
-    await _simpleSchedulNotification();
-  }*/
-
-//Spesific time and every week
- /* Future<void> _simpleSchedulNotification() async {
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'channel_name', 'channel_description',
-    );
-
-    var IOSPlatformChannelSpecifics = IOSNotificationDetails();
-
-    var platformChannelSpecifics = NotificationDetails(
-        androidPlatformChannelSpecifics, IOSPlatformChannelSpecifics);
-    var now = new DateTime.now();
-    var time = Time(1, 20, 0);
-    //Notificar a los 3 minutos
-   // var reprogram = now.add(Duration(hours: 1, minutes: 15, seconds: 00));
-    //Id aleatorio(tarea)
-    await flutterLocalNotificationsPlugin.showWeeklyAtDayAndTime(
-        0,
-        'this is my third Notification',
-        'Hello this notification only shown in one day ${_toTwoDigitString(time.hour)}:${_toTwoDigitString(time.minute)}:${_toTwoDigitString(time.second)}',
-        Day.Tuesday,
-        time,
-        platformChannelSpecifics, payload: 'Hello from my data');
-    //Ver la hora programada
-    Fluttertoast.showToast(
-        msg: "Scheduled at time one day at the week",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.CENTER,
-        timeInSecForIosWeb: 10,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 15.0);
-  }*/
-
-//CADA HORA
-   Future<void> _simpleSchedulNotification() async {
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'channel_name', 'channel_description',
-    );
-
-    var IOSPlatformChannelSpecifics = IOSNotificationDetails();
-
-    var platformChannelSpecifics = NotificationDetails(
-        androidPlatformChannelSpecifics, IOSPlatformChannelSpecifics);
-    var now = new DateTime.now();
-    //Notificar a los 3 minutos
-    var reprogram = now.add(Duration(minutes: 1));
-    //Id aleatorio(tarea)
-    await flutterLocalNotificationsPlugin.periodicallyShow(
-        0,
-        'this is my second Notification',
-        'Hello from my second notification',
-        RepeatInterval.EveryMinute,
-        platformChannelSpecifics, payload: 'Hello from my data');
-    //Ver la hora programada
-    Fluttertoast.showToast(
-        msg: "Scheduled at time $reprogram",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 10,
-        backgroundColor: Colors.grey,
-        textColor: Colors.white,);
-  }
-
-//Ejemplo del profe
-  Future scheuleAtParticularTime(DateTime timee) async {
-    var time = Time(timee.hour, timee.minute, timee.second);
-    print(time.toString());
-   
-    var androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'channel_id', 'channel_name', 'channel_description',
-    );
-
-    var IOSPlatformChannelSpecifics = IOSNotificationDetails();
-
-    var platformChannelSpecifics = NotificationDetails(
-        androidPlatformChannelSpecifics, IOSPlatformChannelSpecifics);
-    var now = new DateTime.now();
-    //Notificar a los 3 minutos
-   // var reprogram = now.add(Duration(hours: 00, minutes: 00, seconds: 5));
-    //Id aleatorio(tarea)
-    await flutterLocalNotificationsPlugin.showDailyAtTime(
-        0,
-        'this is my first Notification',
-        'Hello from my first notification',
-        time,
-        platformChannelSpecifics, payload: 'Hello from my data');
-    //Ver la hora programada
-    Fluttertoast.showToast(
-        msg: "Scheduled at time ${time.hour} : ${time.minute} : ${time.second} ",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 10,
-        backgroundColor: Colors.grey,
-        textColor: Colors.white,
-    );
-  }
-  @override
-  void initState() {
-    super.initState();
-    initializationSettingsAndroid =
-        new AndroidInitializationSettings('app_icon');
-    initializationSettingsIOS = new IOSInitializationSettings(
-        onDidReceiveLocalNotification: _onDidReceiveLocalNotification);
-    initializationSettings = new InitializationSettings(
-        initializationSettingsAndroid, initializationSettingsIOS);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: _onSelectNotification);
-  }
-
-  Future _onSelectNotification(String payload) async {
-    if (payload != null) {
-      debugPrint('Notification payload: $payload');
-    }
-    await Navigator.push(
-        context, new MaterialPageRoute(builder: (context) => new SecondPage(payload: payload,)));
-    print('Called On Select local Notification');
-  }
-
-  Future _onDidReceiveLocalNotification(
-      int id, String title, String body, String payload) async {
-    await showDialog(
-        context: context,
-        builder: (BuildContext context) => CupertinoAlertDialog(
-              title: Text(title),
-              content: Text(body),
-              actions: <Widget>[
-                CupertinoDialogAction(
-                  isDefaultAction: true,
-                  child: Text('Ok'),
-                  onPressed: () async {
-                    Navigator.of(context, rootNavigator: true).pop();
-                    await Navigator.push(context,
-                        MaterialPageRoute(builder: (context) => SecondPage(payload: payload,)));
-                  },
-                ),
-
-              ],
-            ));
-    print('Called On did Receive local Notification');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    return Scaffold(
-        appBar: AppBar(
-          title: new Text('Horario'),
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-                  //POR HORA
-                  MaterialButton(
-                      onPressed: () {},
-                      child: Text('En una hora',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      height: 40,
-                      minWidth: 80,
-                      color: Colors.amber,
-                    ),
-                    Container(height: 15.0),
-                  //SEMANALMENTE
-                  MaterialButton(
-                      onPressed: () {
-                       /* DatePicker.showDateTimePicker(context, showTitleActions: true, onChanged: (date) {
-                          print('change $date in time zone ' + date.timeZoneOffset.inHours.toString());
-                        }, onConfirm: (date) {
-                        print('confirm $date');
-                        }, currentTime: DateTime.now(), locale: LocaleType.en);*/
-                        DatePicker.showTimePicker(context, showTitleActions: true,
-                        onChanged: (date) {
-                          print('change $date');
-                        }, onConfirm: (date) {
-                          print('confirm $date');
-                          scheuleAtParticularTime(
-                              DateTime.fromMillisecondsSinceEpoch(
-                                  date.millisecondsSinceEpoch));
-                        }, currentTime: DateTime.now(), locale: LocaleType.en);
-          
-                      },
-                
-                      child: Text('Semanalmente',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      height: 40,
-                      minWidth: 80,
-                      color: Colors.cyan,
-                    ),
-                    Container(height: 15.0),
-                  //TIEMPO ESPECIFICO
-                  MaterialButton(
-                      onPressed: () {
-                        DatePicker.showDateTimePicker(context, showTitleActions: true, onChanged: (date) {
-                    print('change $date in time zone ' + date.timeZoneOffset.inHours.toString());
-                  }, onConfirm: (date) {
-                    print('confirm $date');
-
-                  }, currentTime: DateTime(2020, 07, 05, 23, 12, 34), locale: LocaleType.es); //en english - es español
-                      },
-                      child: Text('Especifico',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      height: 40,
-                      minWidth: 80,
-                      color: Colors.purple,
-                    ),
-                  ],
-                ),
-            
-        ));
-  }
-
 }
 
 class SecondPage extends StatelessWidget {

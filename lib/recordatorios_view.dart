@@ -21,8 +21,9 @@ class NoteListState extends State<NoteList> {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             final notes = snapshot.data;
-            return ListView.builder(
+            return GridView.builder(
               itemBuilder: (context, index) {
+                var accents = Colors.accents;
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
@@ -34,24 +35,24 @@ class NoteListState extends State<NoteList> {
                   child: Container(
                     child: Padding(
                       padding: const EdgeInsets.only(
-                          top: 5.0, bottom: 5, left: 10.0, right: 22.0),
+                          top: 15.0, bottom: 0, left: 10.0, right: 10.0),
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: <Widget>[
                             Row(children: <Widget>[
                               new Expanded(
                                   child: new Container(
-                                height: 100,
+                                height: 170,
                                 decoration: new BoxDecoration(
                                     borderRadius:
                                         new BorderRadius.circular(10.0),
-                                    color: Colors.blue),
+                                    color: Colors.grey[300]),
                                 child: new Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: <Widget>[
                                     _NoteTitle(notes[index]['title']),
                                     Container(
-                                      height: 4,
+                                      height: 7,
                                     ),
                                     _NoteText(notes[index]['text']),
                                   ],
@@ -59,10 +60,12 @@ class NoteListState extends State<NoteList> {
                               )),
                               Padding(
                                 padding: const EdgeInsets.only(
-                                    left: 2.0,
+                                    left: 1.0,
+                                    right: 1.0
                                   ),
                               ),
-                              new Expanded(
+                              // ************  PENDIENTE  *****************
+                              /*new Expanded(
                                   child: new Container(
                                 height: 150,
                                 decoration: new BoxDecoration(
@@ -79,14 +82,14 @@ class NoteListState extends State<NoteList> {
                                     _NoteText(notes[index]['text']),
                                   ],
                                 ),
-                              )),
+                              )),*/
                             ])
                           ]),
                     ),
                   ),
                 );
               },
-              itemCount: notes.length,
+              itemCount: notes.length, gridDelegate: SliverGridDelegateWithFixedCrossAxisCount( crossAxisCount: 2,),
             );
           }
           return Center(child: CircularProgressIndicator());
@@ -114,7 +117,7 @@ class _NoteTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       _title,
-      style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+      style: TextStyle(fontSize: 25, /*fontWeight:FontWeight.bold,*/ color: Colors.blue[500]),
     );
   }
 }
@@ -128,7 +131,7 @@ class _NoteText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       _text,
-      style: TextStyle(color: Colors.grey.shade600),
+      style: TextStyle(fontSize: 18, color: Colors.black),
       maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );

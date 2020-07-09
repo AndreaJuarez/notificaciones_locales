@@ -1,6 +1,7 @@
+import 'package:actividad6_final/recordatorios_view.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'view_recordatorios.dart';
+import 'recordatorios_view.dart';
 
 //PANTALLA DE REGISTRO
 class Login extends StatefulWidget {
@@ -304,7 +305,7 @@ class _Screen1State extends State<Login> {
                     onSelected: (b) {
                         print(b);
                         Navigator.push(context, MaterialPageRoute(
-                        builder: (context) => Recordario()
+                        builder: (context) => NoteList()
                         ));
                     },
                 ),
@@ -417,7 +418,7 @@ class _Screen1State extends State<Login> {
                     onSelected: (b) {
                         print(b);
                         Navigator.push(context, MaterialPageRoute(
-                        builder: (context) => Recordario()
+                        builder: (context) => NoteList()
                         ));
                     },
                 ),

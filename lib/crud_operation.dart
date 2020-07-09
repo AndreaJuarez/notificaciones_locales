@@ -1,114 +1,67 @@
-import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
-import 'dart:async';
-import 'dart:io' as io;
-import 'notificacion.dart';
+import 'package:actividad6_final/recordatorios_view.dart';
 import 'package:path/path.dart';
+import 'package:sqflite/sqflite.dart';
 
+class NoteProvider {
+  static Database db;
 
-//CLASE DE LA BASE DE DATOS
-class DBHelper {
-  static Database _db;
-  //CAMPOS DE LA TABLA
-  static const String Id = 'id';
-  static const String title = 'title';
-  static const String description = 'description';
-  //NOMBRE DE LA TABLA
-  static const String TABLE = 'Notificaciones';
-  //NOMBRE DE LA BASE DE DATOS
-  static const String DB_NAME = 'notificaciones.db';
-
-
-  //CREACION DE LA BASE DE DATOS (VERIFICAR EXISTENCIA)
-  Future<Database> get db async {
-    //SI ES DIFERENTE DE NULL RETORNARÁ LA BASE DE DATOS
-    if (_db != null) {
-      return _db;
-    } else {
-      //SI NO VAMOS A CREAR EL METODO
-      _db = await initDb();
-      return _db;
-    }
-  }
-
-  //DATABASE CREATION
-  initDb() async {
-    //VARIABLE PARA RUTA DE LOS ARCHIVOS DE LA APLICACION
-    io.Directory appDirectory = await getApplicationDocumentsDirectory();
-    print(appDirectory);
-    String path = join(appDirectory.path, DB_NAME);
-    var db = await openDatabase(path, version: 1, onCreate: _onCreate);
-    return db;
-  }
-
-  _onCreate(Database db, int version) async {
-    await db
-        .execute("CREATE TABLE $TABLE ($Id INTEGER PRIMARY KEY, $title TEXT, $description TEXT)");
-  }
-
-    //EQUIVALENTE A SELECT
-  Future<List<Notificacion>> getNotificacion() async {
-    var dbClient = await db;
-    List<Map> maps = await dbClient.query(TABLE, columns: [Id, title, description]);
-    List<Notificacion> noti = [];
-    if (maps.length > 0) {
-      for (int i = 0; i < maps.length; i++) {
-        noti.add(Notificacion.fromMap(maps[i]));
+  static Future open() async {
+    db = await openDatabase(
+      join(await getDatabasesPath(), 'notes.db'),
+      version: 1,
+      onCreate: (Database db, int version) async {
+        db.execute('''
+          create table Notes(
+            id integer primary key autoincrement,
+            title text not null,
+            text text not null,
+            Num int null,
+            Hours int not null,
+            Minutes int not null,
+            Seconds int not null
+          );
+        ''');
       }
-    }
-    return noti;
+    );
   }
 
-  //EQUIVALENTE A SELECT LIKE
-  Future<List<Notificacion>>Busqueda(String buscado) async{
+  /*EQUIVALENTE A SELECT LIKE
+   static Future<List>Busqueda()async{
     var dbClient = await db;
-    List<Map> maps = await dbClient.rawQuery("SELECT * FROM $TABLE WHERE $title LIKE '$buscado%'");
-    List<Notificacion> noti = [];
+    List<Map> maps = await dbClient.rawQuery("SELECT * FROM Notes WHERE");
+    List notas = [];
     print(maps);
     if (maps.length > 0) {
       for (int i = 0; i < maps.length; i++) {
-        noti.add(Notificacion.fromMap(maps[i]));
+        notas.add(NoteListState/*.fromMap(maps[i])*/);
       }
     }
-    return noti;
-  }
+    return notas;
+  }*/
 
-  //EQUIVALENTE A SAVE O INSERT
-  Future<bool> ValidarInsert(Notificacion notificacion) async {
-    var dbClient = await db;
-    var check = notificacion.title;
-    List<Map> maps = await dbClient
-        .rawQuery("select $Id from $TABLE where $title = $check");
-    if (maps.length == 0) {
-      return true;
-    }else{
-      return false;
+  static Future<List<Map<String, dynamic>>> getNoteList() async {
+    if (db == null) {
+      await open();
     }
-  }
-  Future<bool> insert(Notificacion notificacion) async {
-    var dbClient = await db;
-    notificacion.id = await dbClient.insert(TABLE, notificacion.toMap());
+    return await db.query('Notes');
   }
 
-  //EQUIVALENTE A DELETE
-  Future<int> delete(int id) async{
-    var dbClient = await db;
-    return await dbClient.delete(TABLE, where: '$Id = ?', whereArgs: [id]);
+  static Future insertNote(Map<String, dynamic> note) async {
+    await db.insert('Notes', note);
   }
 
-  //EQUIVALENTE A UPDATE
-  Future<int> update(Notificacion notificacion) async{
-    var dbClient = await db;
-    return await dbClient.update(TABLE, notificacion.toMap(),
-        where: '$Id = ?', whereArgs: [notificacion.id]);
+  static Future updateNote(Map<String, dynamic> note) async {
+    await db.update(
+      'Notes',
+      note,
+      where: 'id = ?',
+      whereArgs: [note['id']]);
   }
 
-  //CLOSE DATABASE
-  Future closedb()async{
-    var dbClient = await db;
-    dbClient.close();
-  }
+  static Future deleteNote(int id) async {
+    await db.delete(
+      'Notes',
+      where: 'id = ?',
+      whereArgs: [id]);
+  } 
 }
-
-
